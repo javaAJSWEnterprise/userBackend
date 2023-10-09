@@ -7,6 +7,7 @@ import com.example.userbackend.exception.InvalidUserExeption;
 import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.ErrorResponse;
 import com.example.userbackend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody UserRequest user) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserRequest user) {
         try {
             UserResponse userCreated = userService.createUser(user);
             return ResponseEntity.status(HttpStatus.CREATED).body(userCreated);
@@ -51,7 +52,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@PathVariable String userId, @RequestBody UserUpdateRequest user) {
+    public ResponseEntity<?> updateUser(@Valid @RequestBody UserUpdateRequest user, @PathVariable String userId) {
         try {
             UserResponse updatedUser = userService.updateUser(userId, user);
             if (updatedUser == null) {
