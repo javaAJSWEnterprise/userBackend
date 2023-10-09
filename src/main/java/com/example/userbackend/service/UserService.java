@@ -3,6 +3,7 @@ package com.example.userbackend.service;
 import com.example.userbackend.dtos.UserRequest;
 import com.example.userbackend.dtos.UserResponse;
 import com.example.userbackend.dtos.UserUpdateRequest;
+import com.example.userbackend.exception.InvalidUserExeption;
 import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.User;
 import com.example.userbackend.repository.UserRepository;
@@ -35,7 +36,7 @@ public class UserService {
     public UserResponse createUser(UserRequest user) {
         Optional<User> userByEmail = userRepository.findByAuthEmail(user.getAuth().getEmail());
         if(userByEmail.isPresent()){
-            return null;
+            throw  new InvalidUserExeption("Email is already in use.");
         }
         EncryptionService.hashingPassword(user);
         User userCreated = userRepository.save(mapUserRequestToUser(user));
