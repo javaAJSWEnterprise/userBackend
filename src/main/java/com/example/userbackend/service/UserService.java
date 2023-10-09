@@ -2,15 +2,14 @@ package com.example.userbackend.service;
 
 import com.example.userbackend.dtos.UserRequest;
 import com.example.userbackend.dtos.UserResponse;
+import com.example.userbackend.dtos.UserUpdateRequest;
+import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.User;
 import com.example.userbackend.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -34,10 +33,14 @@ public class UserService {
     }
 
     public UserResponse createUser(UserRequest user) {
+        Optional<User> userByEmail = userRepository.findByAuthEmail(user.getAuth().getEmail());
+        if(userByEmail.isPresent()){
+            return null;
+        }
+        EncryptionService.hashingPassword(user);
         User userCreated = userRepository.save(mapUserRequestToUser(user));
         return  mapUserToUserResponse(userCreated);
     }
-
 
     public Optional<UserResponse> getUserById(String userId) {
         Optional<User> userFind = userRepository.findById(userId);
@@ -47,10 +50,9 @@ public class UserService {
         } else {
             return Optional.empty();
         }
-
     }
 
-    public UserResponse updateUser(String userId, UserRequest user) {
+    public UserResponse updateUser(String userId, UserUpdateRequest user) {
         Optional<User> existingUserOptional = userRepository.findById(userId);
 
         if (existingUserOptional.isPresent()) {
@@ -66,12 +68,18 @@ public class UserService {
         }
     }
 
+    public Optional<UserResponse> login(Authentication auth){
+        Optional<User> userLogin = userRepository.findByAuthEmail(auth.getEmail());
 
-    public Optional<User> getUserByEmail(String email){
+        if(userLogin.isEmpty()){
+            return Optional.empty();
+        }
 
-        return userRepository.findByAuthEmail(email);
+        if(!EncryptionService.authenticateUser(userLogin.get().getAuth().getPassword(), auth.getPassword())){
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(mapUserToUserResponse(userLogin.get()));
     }
-
-
 }
 
