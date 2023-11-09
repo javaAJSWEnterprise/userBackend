@@ -1,18 +1,26 @@
 package com.example.userbackend.controller;
 
+import com.example.userbackend.dtos.LoginResponse;
 import com.example.userbackend.dtos.UserRequest;
 import com.example.userbackend.dtos.UserResponse;
 import com.example.userbackend.dtos.UserUpdateRequest;
 import com.example.userbackend.exception.InvalidUserExeption;
 import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.ErrorResponse;
+import com.example.userbackend.security.JwtService;
 import com.example.userbackend.service.UserService;
+import io.jsonwebtoken.Claims;
+import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -22,11 +30,15 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    private final JwtService jwtService;
+
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, JwtService jwtService) {
+
         this.userService = userService;
+        this.jwtService = jwtService;
     }
-    @PostMapping
+    @PostMapping("/register")
     public ResponseEntity<?> createUser(@Valid @RequestBody UserRequest user) {
         try {
             UserResponse userCreated = userService.createUser(user);
@@ -37,10 +49,20 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(e.getMessage()));
         }
     }
-    @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserById(@PathVariable String userId) {
+    @GetMapping("")
+
+    public ResponseEntity<?> getUserById(@RequestHeader(name = "Authorization") String authorizationHeader) {
         try {
+
+
+            String token = authorizationHeader.substring(7);
+
+            Claims  claims = jwtService.extractAllClaims(token);
+
+            String userId = (String) claims.get("id");
+
             Optional<UserResponse> user = userService.getUserById(userId);
+
             if (user.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("User not found"));
             }
@@ -49,9 +71,15 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(e.getMessage()));
         }
     }
-    @PutMapping("/{userId}")
-    public ResponseEntity<?> updateUser(@Valid @RequestBody UserUpdateRequest user, @PathVariable String userId) {
+    @PutMapping("")
+    public ResponseEntity<?> updateUser(@Valid @RequestBody UserUpdateRequest user, @RequestHeader(name = "Authorization") String authorizationHeader) {
         try {
+            String token = authorizationHeader.substring(7);
+
+            Claims  claims = jwtService.extractAllClaims(token);
+
+            String userId = (String) claims.get("id");
+
             UserResponse updatedUser = userService.updateUser(userId, user);
             if (updatedUser == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("User not found"));
@@ -62,13 +90,14 @@ public class UserController {
         }
     }
     @PostMapping("/login")
+
     public ResponseEntity<?> login(@RequestBody Authentication authentication) {
         try {
-            Optional<UserResponse> user = userService.login(authentication);
-            if (user.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Authentication failed"));
-            }
-            return ResponseEntity.ok(user.get());
+            LoginResponse user = userService.login(authentication);
+
+            return ResponseEntity.ok(user);
+
+
         } catch (DataAccessException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(e.getMessage()));
         }
