@@ -1,5 +1,6 @@
 package com.example.userbackend.service;
 
+import com.example.userbackend.dtos.LoginResponse;
 import com.example.userbackend.dtos.UserRequest;
 import com.example.userbackend.dtos.UserResponse;
 import com.example.userbackend.dtos.UserUpdateRequest;
@@ -7,8 +8,11 @@ import com.example.userbackend.exception.InvalidUserExeption;
 import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.User;
 import com.example.userbackend.repository.UserRepository;
+import com.example.userbackend.security.JwtService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
 
@@ -17,12 +21,16 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private  final EncryptionService encryptionService;
+    private  final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, EncryptionService encryptionService) {
+    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, EncryptionService encryptionService, JwtService jwtService, AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.encryptionService = encryptionService;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
     public User mapUserRequestToUser(UserRequest userRequest) {
         return modelMapper.map(userRequest, User.class);
@@ -66,18 +74,23 @@ public class UserServiceImpl implements UserService {
            return null;
         }
     }
-    public Optional<UserResponse> login(Authentication auth){
-        Optional<User> userLogin = userRepository.findByAuthEmail(auth.getEmail());
+    public LoginResponse login(Authentication auth){
 
-        if(userLogin.isEmpty()){
-            return Optional.empty();
-        }
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(auth.getEmail(), auth.getPassword())
+        );
 
-        if(!encryptionService.authenticateUser(userLogin.get().getAuth().getPassword(), auth.getPassword())){
-            return Optional.empty();
-        }
+        var user = userRepository.findByAuthEmail(auth.getEmail())
+                .orElseThrow();
 
-        return Optional.ofNullable(mapUserToUserResponse(userLogin.get()));
+        var jwtToken = jwtService.generateToken(user);
+
+        LoginResponse loginResponse = new LoginResponse();
+
+        loginResponse.setToken(jwtToken);
+
+        return loginResponse;
+
     }
 }
 
