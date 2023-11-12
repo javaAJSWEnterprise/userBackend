@@ -22,7 +22,7 @@ public class UserRequest {
     @NotNull(message = "Last name cannot be null")
     @NotBlank(message = "Last name cannot be blank")
     @Size(max = 25, message = "Last name must be at most 25 characters long")
-    @Pattern(regexp = "^[A-Za-z0-9]*$", message = "Last name must contain only letters and numbers")
+    @Pattern(regexp = "^[\\p{L}0-9]*$", message = "Last name must contain only letters, numbers, and 'ñ'")
     private String lastname;
 
     @NotNull(message = "Birth date cannot be null")

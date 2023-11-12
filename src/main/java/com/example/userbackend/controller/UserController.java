@@ -7,9 +7,11 @@ import com.example.userbackend.dtos.UserUpdateRequest;
 import com.example.userbackend.exception.InvalidUserExeption;
 import com.example.userbackend.model.Authentication;
 import com.example.userbackend.model.ErrorResponse;
+import com.example.userbackend.security.JwtAuthenticationFilter;
 import com.example.userbackend.security.JwtService;
 import com.example.userbackend.service.UserService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.annotation.security.PermitAll;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +19,10 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import javax.naming.AuthenticationException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -97,8 +101,8 @@ public class UserController {
 
             return ResponseEntity.ok(user);
 
-
-        } catch (DataAccessException e) {
+        }
+        catch (DataAccessException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse(e.getMessage()));
         }
     }
